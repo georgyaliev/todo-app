@@ -16,6 +16,23 @@ npm run test               # запуск всех тестов
 npm run test:coverage      # с отчётом покрытия
 ```
 
+## Автоматический деплой (GitHub Pages)
+
+[![Deploy to GitHub Pages](https://github.com/georgyaliev/todo-app/actions/workflows/deploy.yml/badge.svg)](https://github.com/georgyaliev/todo-app/actions/workflows/deploy.yml)
+
+Сайт: **https://georgyaliev.github.io/todo-app/**
+
+Каждый `git push` в ветку `main` автоматически запускает пайплайн:
+тесты → сборка → деплой. Если тесты падают — деплой не происходит.
+
+### Подключение GitHub Pages (один раз, после первого пуша)
+
+1. Открой репозиторий на GitHub → **Settings → Pages**.
+2. В разделе **Build and deployment** выбери **Source: GitHub Actions**.
+3. Сохрани. После следующего пуша в `main` сайт станет доступен по адресу выше.
+
+---
+
 ## Деплой на Netlify
 
 ### Вариант A: Drag-and-drop (без git, 1 минута)
