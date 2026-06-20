@@ -40,9 +40,7 @@ export class MobileSheet {
     header.append(heading, closeBtn);
 
     const list = document.createElement('ul');
-    list.style.listStyle = 'none';
-    list.style.padding = '0';
-    list.style.margin = '0';
+    list.classList.add('cal-sheet-item-list');
 
     const addRow = document.createElement('div');
     addRow.className = 'cal-sheet__add';
@@ -103,27 +101,22 @@ export class MobileSheet {
     this.listEl.textContent = '';
     for (const todo of todos) {
       const li = document.createElement('li');
-      li.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;';
+      li.className = 'cal-sheet-item';
 
       const check = document.createElement('input');
       check.type = 'checkbox';
       check.checked = todo.completed;
-      check.style.cursor = 'pointer';
       check.addEventListener('change', () => {
         this.callbacks.onToggle(todo.id);
       });
 
       const text = document.createElement('span');
-      text.style.flex = '1';
+      text.className = 'cal-sheet-item__text' + (todo.completed ? ' cal-sheet-item__text--done' : '');
       text.textContent = todo.text;
-      if (todo.completed) {
-        text.style.textDecoration = 'line-through';
-        text.style.opacity = '0.45';
-      }
 
       const delBtn = document.createElement('button');
       delBtn.textContent = '×';
-      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1rem;color:#999;';
+      delBtn.className = 'cal-sheet-item__del';
       delBtn.setAttribute('aria-label', `Удалить задачу: ${todo.text}`);
       delBtn.addEventListener('click', () => {
         this.callbacks.onRemove(todo.id);

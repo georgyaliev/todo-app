@@ -1,13 +1,31 @@
 :root {
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-text: #1f2937;
-  --color-completed: #9ca3af;
-  --color-error: #dc2626;
-  --color-bg: #f9fafb;
-  --color-surface: #ffffff;
-  --color-border: #e5e7eb;
-  --color-delete-hover: #ef4444;
+  --color-bg: #0b0d17;
+  --color-surface: #131727;
+  --color-surface-hover: #1c2236;
+  --color-border: #2a3050;
+  --color-text: #e2e8f0;
+  --color-text-muted: #8896b0;
+  --color-completed: #4a5568;
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-error: #f87171;
+  --color-delete-hover: #f87171;
+  --cal-bg: #131727;
+  --cal-bg-tail: #0f1220;
+  --cal-cell-hover: #1c2236;
+  --cal-text: #e2e8f0;
+  --cal-text-muted: #8896b0;
+  --cal-border: #2a3050;
+  --cal-today-bg: #6366f1;
+  --cal-today-text: #ffffff;
+  --cal-stat-done-text: #4ade80;
+  --cal-stat-done-bg: rgba(74, 222, 128, 0.12);
+  --cal-stat-active-text: #60a5fa;
+  --cal-stat-active-bg: rgba(96, 165, 250, 0.12);
+  --tooltip-bg: #1e2640;
+  --tooltip-text: #e2e8f0;
+  --tooltip-border: #3d4f7c;
+  --tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
 *,
@@ -20,7 +38,7 @@
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background-color: var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
   min-height: 100vh;
@@ -30,10 +48,9 @@ body {
 .app {
   max-width: 600px;
   margin: 0 auto;
-  background: var(--color-surface);
+  background: transparent;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 h1 {
@@ -59,6 +76,8 @@ h1 {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
   transition: border-color 0.15s;
 }
 
@@ -72,7 +91,7 @@ h1 {
   padding: 0.5rem 1rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--cal-today-text);
   background-color: var(--color-primary);
   border: none;
   border-radius: 6px;
@@ -122,7 +141,7 @@ h1 {
 }
 
 .todo-item:hover {
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-hover);
 }
 
 .todo-item input[type="checkbox"] {
@@ -186,4 +205,30 @@ h1 {
   .todo-form button[type="submit"] {
     width: 100%;
   }
+}
+
+.cal-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  border: 1px solid var(--tooltip-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  max-width: 240px;
+  word-break: break-word;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  box-shadow: var(--tooltip-shadow);
+}
+
+.cal-tooltip--visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-tooltip { transition: none; }
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

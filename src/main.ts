@@ -1,7 +1,11 @@
 import './styles/calendar.css';
+import { initStarCanvas } from './background/StarCanvas';
 import { StorageService } from './services/StorageService';
 import { TodoService } from './services/TodoService';
 import { CalendarView } from './components/calendar/CalendarView';
+
+const stopStars = initStarCanvas();
+void stopStars;
 
 const storage = new StorageService();
 const service = new TodoService(storage);
