@@ -10,6 +10,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     text: 'Test',
     completed: false,
     createdAt: 1000000,
+    dueDate: '2026-01-15',
     ...overrides,
   };
 }
@@ -29,7 +30,8 @@ describe('StorageService.load()', () => {
       makeTodo({ id: 'id-1', text: 'Первая', completed: false, createdAt: 1001 }),
       makeTodo({ id: 'id-2', text: 'Вторая', completed: true, createdAt: 1002 }),
     ];
-    localStorage.setItem('todos', JSON.stringify(todos));
+    // Save as v2 envelope
+    localStorage.setItem('todos', JSON.stringify({ version: 2, todos }));
 
     const service = new StorageService();
     const loaded = service.load();
@@ -44,7 +46,7 @@ describe('StorageService.load()', () => {
       makeTodo({ id: 'id-1', completed: true }),
       makeTodo({ id: 'id-2', completed: false }),
     ];
-    localStorage.setItem('todos', JSON.stringify(todos));
+    localStorage.setItem('todos', JSON.stringify({ version: 2, todos }));
 
     const service = new StorageService();
     const loaded = service.load();
@@ -59,15 +61,16 @@ describe('StorageService.load()', () => {
     expect(service.load()).toEqual([]);
   });
 
-  it('возвращает пустой массив если значение не массив', () => {
+  it('возвращает пустой массив если значение не массив и не envelope', () => {
     localStorage.setItem('todos', JSON.stringify({ id: '1' }));
     const service = new StorageService();
     expect(service.load()).toEqual([]);
   });
 
-  it('фильтрует невалидные элементы массива, сохраняя валидные', () => {
+  it('фильтрует невалидные элементы массива (v1), сохраняя валидные с dueDate', () => {
     const valid = makeTodo({ id: 'valid-id' });
     const invalid = { foo: 'bar' };
+    // v1 format: raw array
     localStorage.setItem('todos', JSON.stringify([valid, invalid]));
 
     const service = new StorageService();
@@ -78,21 +81,112 @@ describe('StorageService.load()', () => {
   });
 
   it('фильтрует элементы с отсутствующими обязательными полями', () => {
-    const noId = { text: 'Без id', completed: false, createdAt: 100 };
-    const noCompleted = { id: 'x', text: 'Без completed', createdAt: 100 };
-    localStorage.setItem('todos', JSON.stringify([noId, noCompleted]));
+    const noId = { text: 'Без id', completed: false, createdAt: 100, dueDate: '2026-01-15' };
+    const noCompleted = { id: 'x', text: 'Без completed', createdAt: 100, dueDate: '2026-01-15' };
+    // v2 envelope
+    localStorage.setItem('todos', JSON.stringify({ version: 2, todos: [noId, noCompleted] }));
 
     const service = new StorageService();
     expect(service.load()).toEqual([]);
   });
 
-  it('фильтрует null в массиве (ветка value === null в isTodo)', () => {
-    localStorage.setItem('todos', JSON.stringify([null, makeTodo({ id: 'valid' })]));
+  it('фильтрует null в массиве (v2 envelope)', () => {
+    localStorage.setItem('todos', JSON.stringify({ version: 2, todos: [null, makeTodo({ id: 'valid' })] }));
 
     const service = new StorageService();
     const loaded = service.load();
     expect(loaded).toHaveLength(1);
     expect(loaded[0].id).toBe('valid');
+  });
+
+  it('загружает v1-массив без dueDate → мигрирует, добавляет dueDate=сегодня', () => {
+    // v1: raw array, todos without dueDate
+    const legacyTodos = [
+      { id: 'leg-1', text: 'Старая задача', completed: false, createdAt: 500 },
+    ];
+    localStorage.setItem('todos', JSON.stringify(legacyTodos));
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const service = new StorageService();
+    const loaded = service.load();
+
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].id).toBe('leg-1');
+    expect(loaded[0].dueDate).toBe(todayStr);
+  });
+
+  it('загружает v2-envelope → корректно возвращает задачи', () => {
+    const todos: Todo[] = [
+      makeTodo({ id: 'env-1', text: 'Задача в envelope' }),
+    ];
+    const envelope = { version: 2, todos };
+    localStorage.setItem('todos', JSON.stringify(envelope));
+
+    const service = new StorageService();
+    const loaded = service.load();
+
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].id).toBe('env-1');
+    expect(loaded[0].dueDate).toBe('2026-01-15');
+  });
+
+  it('v1 запись с dueDate: null → получает dueDate=today, запись не теряется', () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const legacyWithNull = [
+      { id: 'null-1', text: 'Задача с null датой', completed: false, createdAt: 100, dueDate: null },
+    ];
+    localStorage.setItem('todos', JSON.stringify(legacyWithNull));
+
+    const service = new StorageService();
+    const loaded = service.load();
+
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].id).toBe('null-1');
+    expect(loaded[0].dueDate).toBe(todayStr);
+  });
+
+  it('v1 без dueDate → после load() localStorage содержит v2 envelope', () => {
+    const legacyTodos = [
+      { id: 'leg-1', text: 'Задача', completed: false, createdAt: 500 },
+    ];
+    localStorage.setItem('todos', JSON.stringify(legacyTodos));
+
+    const service = new StorageService();
+    service.load();
+
+    const raw = localStorage.getItem('todos');
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw!) as { version: number; todos: unknown[] };
+    expect(parsed.version).toBe(2);
+    expect(Array.isArray(parsed.todos)).toBe(true);
+    expect(parsed.todos).toHaveLength(1);
+  });
+
+  it('v1 массив без dueDate → данные не теряются, все записи присутствуют', () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const legacyTodos = [
+      { id: 'leg-1', text: 'Первая', completed: false, createdAt: 1 },
+      { id: 'leg-2', text: 'Вторая', completed: true, createdAt: 2 },
+    ];
+    localStorage.setItem('todos', JSON.stringify(legacyTodos));
+
+    const service = new StorageService();
+    const loaded = service.load();
+
+    expect(loaded).toHaveLength(2);
+    expect(loaded[0].id).toBe('leg-1');
+    expect(loaded[1].id).toBe('leg-2');
+    expect(loaded[0].dueDate).toBe(todayStr);
+    expect(loaded[1].dueDate).toBe(todayStr);
+    // Остальные поля не изменились
+    expect(loaded[0].text).toBe('Первая');
+    expect(loaded[1].completed).toBe(true);
   });
 });
 
@@ -110,7 +204,10 @@ describe('StorageService.save()', () => {
     expect(result).toBe(true);
     const raw = localStorage.getItem('todos');
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw!)).toEqual(todos);
+    // v2 saves as envelope
+    const parsed = JSON.parse(raw!) as { version: number; todos: Todo[] };
+    expect(parsed.version).toBe(2);
+    expect(parsed.todos).toEqual(todos);
   });
 
   it('сохраняет пустой массив', () => {
@@ -118,7 +215,8 @@ describe('StorageService.save()', () => {
     const result = service.save([]);
 
     expect(result).toBe(true);
-    expect(JSON.parse(localStorage.getItem('todos')!)).toEqual([]);
+    const parsed = JSON.parse(localStorage.getItem('todos')!) as { version: number; todos: Todo[] };
+    expect(parsed.todos).toEqual([]);
   });
 
   it('перезаписывает предыдущие данные при повторном вызове', () => {

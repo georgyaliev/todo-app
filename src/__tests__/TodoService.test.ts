@@ -25,6 +25,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     text: 'Test task',
     completed: false,
     createdAt: Date.now(),
+    dueDate: '2026-01-15',
     ...overrides,
   };
 }
@@ -38,7 +39,7 @@ describe('TodoService.add()', () => {
     const storage = makeMockStorage();
     const service = new TodoService(storage);
 
-    const todo = service.add('Купить молоко');
+    const todo = service.add('Купить молоко', '2026-01-15');
 
     expect(todo.text).toBe('Купить молоко');
     expect(todo.completed).toBe(false);
@@ -53,7 +54,7 @@ describe('TodoService.add()', () => {
     const storage = makeMockStorage([existing]);
     const service = new TodoService(storage);
 
-    const second = service.add('Вторая задача');
+    const second = service.add('Вторая задача', '2026-01-15');
     const all = service.getAll();
 
     expect(all).toHaveLength(2);
@@ -65,7 +66,7 @@ describe('TodoService.add()', () => {
     const storage = makeMockStorage();
     const service = new TodoService(storage);
 
-    expect(() => service.add('')).toThrowError(ValidationError);
+    expect(() => service.add('', '2026-01-15')).toThrowError(ValidationError);
     expect(service.getAll()).toHaveLength(0);
     expect(storage.save).not.toHaveBeenCalled();
   });
@@ -74,7 +75,7 @@ describe('TodoService.add()', () => {
     const storage = makeMockStorage();
     const service = new TodoService(storage);
 
-    expect(() => service.add('   ')).toThrowError(ValidationError);
+    expect(() => service.add('   ', '2026-01-15')).toThrowError(ValidationError);
     expect(service.getAll()).toHaveLength(0);
     expect(storage.save).not.toHaveBeenCalled();
   });
@@ -84,7 +85,7 @@ describe('TodoService.add()', () => {
     const service = new TodoService(storage);
     const longText = 'а'.repeat(256);
 
-    expect(() => service.add(longText)).toThrowError(ValidationError);
+    expect(() => service.add(longText, '2026-01-15')).toThrowError(ValidationError);
     expect(service.getAll()).toHaveLength(0);
     expect(storage.save).not.toHaveBeenCalled();
   });
@@ -94,7 +95,7 @@ describe('TodoService.add()', () => {
     const service = new TodoService(storage);
     const exactText = 'а'.repeat(255);
 
-    const todo = service.add(exactText);
+    const todo = service.add(exactText, '2026-01-15');
     expect(todo.text).toBe(exactText);
   });
 
@@ -102,7 +103,7 @@ describe('TodoService.add()', () => {
     const storage = makeMockStorage();
     const service = new TodoService(storage);
 
-    const todo = service.add('  задача с пробелами  ');
+    const todo = service.add('  задача с пробелами  ', '2026-01-15');
     expect(todo.text).toBe('задача с пробелами');
   });
 
@@ -112,8 +113,41 @@ describe('TodoService.add()', () => {
     const listener = vi.fn();
     service.onChange(listener);
 
-    service.add('Задача');
+    service.add('Задача', '2026-01-15');
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('сохраняет dueDate в задаче', () => {
+    const storage = makeMockStorage();
+    const service = new TodoService(storage);
+
+    const todo = service.add('Задача с датой', '2026-06-15');
+    expect(todo.dueDate).toBe('2026-06-15');
+  });
+
+  it('бросает ValidationError при невалидной дате (не-дата)', () => {
+    const storage = makeMockStorage();
+    const service = new TodoService(storage);
+
+    expect(() => service.add('текст', 'не-дата')).toThrowError(ValidationError);
+    expect(service.getAll()).toHaveLength(0);
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it('бросает ValidationError при дате в неверном формате (DD.MM.YYYY)', () => {
+    const storage = makeMockStorage();
+    const service = new TodoService(storage);
+
+    expect(() => service.add('текст', '15.06.2026')).toThrowError(ValidationError);
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it('бросает ValidationError при пустой строке в качестве даты', () => {
+    const storage = makeMockStorage();
+    const service = new TodoService(storage);
+
+    expect(() => service.add('текст', '')).toThrowError(ValidationError);
+    expect(storage.save).not.toHaveBeenCalled();
   });
 });
 
@@ -251,6 +285,150 @@ describe('TodoService.getActiveCount()', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getByDate()
+// ---------------------------------------------------------------------------
+
+describe('TodoService.getByDate()', () => {
+  it('возвращает задачи с заданной датой', () => {
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2026-01-15' }),
+      makeTodo({ id: '2', dueDate: '2026-01-16' }),
+      makeTodo({ id: '3', dueDate: '2026-01-15' }),
+    ];
+    const storage = makeMockStorage(todos);
+    const service = new TodoService(storage);
+
+    const result = service.getByDate('2026-01-15');
+    expect(result).toHaveLength(2);
+    expect(result.map((t) => t.id)).toEqual(['1', '3']);
+  });
+
+  it('возвращает пустой массив если нет задач с такой датой', () => {
+    const storage = makeMockStorage([makeTodo({ dueDate: '2026-01-15' })]);
+    const service = new TodoService(storage);
+
+    expect(service.getByDate('2026-02-01')).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getByDateRange()
+// ---------------------------------------------------------------------------
+
+describe('TodoService.getByDateRange()', () => {
+  let service: TodoService;
+
+  beforeEach(() => {
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2026-01-10' }),
+      makeTodo({ id: '2', dueDate: '2026-01-15' }),
+      makeTodo({ id: '3', dueDate: '2026-01-15' }),
+      makeTodo({ id: '4', dueDate: '2026-02-01' }),
+    ];
+    service = new TodoService(makeMockStorage(todos));
+  });
+
+  it('возвращает Map с ключами для всех переданных дат', () => {
+    const dates = ['2026-01-10', '2026-01-15', '2026-01-20'];
+    const map = service.getByDateRange(dates);
+
+    expect(map.has('2026-01-10')).toBe(true);
+    expect(map.has('2026-01-15')).toBe(true);
+    expect(map.has('2026-01-20')).toBe(true);
+  });
+
+  it('группирует задачи по датам корректно', () => {
+    const dates = ['2026-01-10', '2026-01-15'];
+    const map = service.getByDateRange(dates);
+
+    expect(map.get('2026-01-10')).toHaveLength(1);
+    expect(map.get('2026-01-15')).toHaveLength(2);
+  });
+
+  it('дата без задач имеет пустой массив', () => {
+    const map = service.getByDateRange(['2026-01-20']);
+    expect(map.get('2026-01-20')).toEqual([]);
+  });
+
+  it('не включает задачи вне диапазона дат', () => {
+    const map = service.getByDateRange(['2026-01-10']);
+    // Задача с id '4' (2026-02-01) не должна попасть
+    const all = [...map.values()].flat();
+    expect(all.find((t) => t.id === '4')).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getMonthStats()
+// ---------------------------------------------------------------------------
+
+describe('TodoService.getMonthStats()', () => {
+  it('считает выполненные и активные задачи за месяц', () => {
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2026-01-01', completed: false }),
+      makeTodo({ id: '2', dueDate: '2026-01-15', completed: true }),
+      makeTodo({ id: '3', dueDate: '2026-01-31', completed: false }),
+      makeTodo({ id: '4', dueDate: '2026-02-01', completed: true }), // другой месяц
+    ];
+    const service = new TodoService(makeMockStorage(todos));
+
+    const stats = service.getMonthStats(2026, 0); // Январь (month=0)
+    expect(stats.active).toBe(2);
+    expect(stats.completed).toBe(1);
+  });
+
+  it('возвращает нули для месяца без задач', () => {
+    const service = new TodoService(makeMockStorage([]));
+    const stats = service.getMonthStats(2026, 5);
+    expect(stats.active).toBe(0);
+    expect(stats.completed).toBe(0);
+  });
+
+  it('не смешивает задачи разных лет', () => {
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2025-01-15', completed: false }),
+      makeTodo({ id: '2', dueDate: '2026-01-15', completed: false }),
+    ];
+    const service = new TodoService(makeMockStorage(todos));
+
+    const stats2026 = service.getMonthStats(2026, 0);
+    expect(stats2026.active).toBe(1);
+
+    const stats2025 = service.getMonthStats(2025, 0);
+    expect(stats2025.active).toBe(1);
+  });
+
+  it('не считает задачи из хвостов сетки (декабрь в сетке января)', () => {
+    // Январь 2026 начинается с четверга — в сетке есть 2025-12-29..31.
+    // getMonthStats(2026, 0) должен считать только задачи с prefix "2026-01"
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2025-12-29', completed: false }), // хвост сетки
+      makeTodo({ id: '2', dueDate: '2025-12-31', completed: true }),  // хвост сетки
+      makeTodo({ id: '3', dueDate: '2026-01-01', completed: false }), // январь
+    ];
+    const service = new TodoService(makeMockStorage(todos));
+
+    const stats = service.getMonthStats(2026, 0);
+    expect(stats.active).toBe(1);
+    expect(stats.completed).toBe(0);
+  });
+
+  it('не считает задачи из хвоста следующего месяца', () => {
+    // Июнь 2026 заканчивается 30-го, хвост: 2026-07-01..05
+    const todos = [
+      makeTodo({ id: '1', dueDate: '2026-06-30', completed: false }), // июнь
+      makeTodo({ id: '2', dueDate: '2026-07-01', completed: false }), // хвост сетки
+      makeTodo({ id: '3', dueDate: '2026-07-05', completed: true }),  // хвост сетки
+    ];
+    const service = new TodoService(makeMockStorage(todos));
+
+    const stats = service.getMonthStats(2026, 5);
+    expect(stats.active).toBe(1);
+    expect(stats.completed).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // onChange() / unsubscribe
 // ---------------------------------------------------------------------------
 
@@ -261,11 +439,11 @@ describe('TodoService.onChange()', () => {
     const listener = vi.fn();
 
     const unsubscribe = service.onChange(listener);
-    service.add('Задача 1');
+    service.add('Задача 1', '2026-01-15');
     expect(listener).toHaveBeenCalledTimes(1);
 
     unsubscribe();
-    service.add('Задача 2');
+    service.add('Задача 2', '2026-01-15');
     expect(listener).toHaveBeenCalledTimes(1); // не вызван повторно
   });
 
@@ -277,7 +455,7 @@ describe('TodoService.onChange()', () => {
 
     service.onChange(l1);
     service.onChange(l2);
-    service.add('Задача');
+    service.add('Задача', '2026-01-15');
 
     expect(l1).toHaveBeenCalledTimes(1);
     expect(l2).toHaveBeenCalledTimes(1);
@@ -294,7 +472,7 @@ describe('TodoService — сбой storage.save()', () => {
     storage.save.mockReturnValue(false);
     const service = new TodoService(storage);
 
-    service.add('Задача');
+    service.add('Задача', '2026-01-15');
     expect(service.getAll()).toHaveLength(0);
   });
 
@@ -305,7 +483,7 @@ describe('TodoService — сбой storage.save()', () => {
     const listener = vi.fn();
     service.onChange(listener);
 
-    service.add('Задача');
+    service.add('Задача', '2026-01-15');
     expect(listener).not.toHaveBeenCalled();
   });
 
@@ -358,7 +536,7 @@ describe('TodoService.onChange() — повторная отписка', () => {
     unsub1(); // первая отписка
     unsub1(); // вторая отписка — не должна кинуть ошибку
 
-    service.add('Задача');
+    service.add('Задача', '2026-01-15');
     expect(l1).not.toHaveBeenCalled();
     expect(l2).toHaveBeenCalledTimes(1);
   });

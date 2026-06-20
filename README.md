@@ -2,6 +2,12 @@
 
 Минималистичный менеджер задач. Vanilla TypeScript + Vite, данные хранятся в localStorage.
 
+## Функциональность
+
+- Создание, редактирование и удаление задач
+- Фильтрация по статусу (все / активные / выполненные)
+- **Calendar View** — просмотр задач в виде календаря с привязкой к датам, inline-созданием задач прямо из ячейки дня и адаптивным отображением на мобильных устройствах
+
 ## Локальная разработка
 
 ```bash
@@ -73,10 +79,11 @@ netlify deploy --dir=dist --prod   # деплой в продакшен
 
 ```
 src/
-  components/   # UI-компоненты (TodoForm, TodoList, TodoCounter)
+  components/   # UI-компоненты (TodoForm, TodoList, TodoCounter, CalendarView)
   models/       # доменные модели (Todo, TodoList)
   services/     # бизнес-логика (TodoService, StorageService)
-  __tests__/    # тесты (45 unit-тестов)
+  utils/        # вспомогательные утилиты (dateUtils)
+  __tests__/    # тесты (95 unit-тестов)
   main.ts       # точка входа
   types.ts      # общие TypeScript-типы
   errors.ts     # кастомные ошибки

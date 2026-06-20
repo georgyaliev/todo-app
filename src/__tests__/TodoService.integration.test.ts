@@ -9,13 +9,15 @@ import { StorageService } from '../services/StorageService';
 
 // localStorage очищается глобально в src/__tests__/setup.ts перед каждым тестом
 
+const TEST_DATE = '2026-01-15';
+
 describe('Персистентность: TodoService + StorageService', () => {
   it('задачи, добавленные через первый экземпляр, видны во втором', () => {
     const storage1 = new StorageService();
     const service1 = new TodoService(storage1);
 
-    const t1 = service1.add('Задача A');
-    const t2 = service1.add('Задача B');
+    const t1 = service1.add('Задача A', TEST_DATE);
+    const t2 = service1.add('Задача B', TEST_DATE);
 
     // Второй независимый экземпляр читает тот же localStorage
     const storage2 = new StorageService();
@@ -31,8 +33,8 @@ describe('Персистентность: TodoService + StorageService', () => {
     const storage1 = new StorageService();
     const service1 = new TodoService(storage1);
 
-    const t1 = service1.add('Задача A');
-    service1.add('Задача B');
+    const t1 = service1.add('Задача A', TEST_DATE);
+    service1.add('Задача B', TEST_DATE);
     service1.toggle(t1.id); // t1 → completed = true
 
     const loaded = new TodoService(new StorageService()).getAll();
@@ -48,8 +50,8 @@ describe('Персистентность: TodoService + StorageService', () => {
     const storage1 = new StorageService();
     const service1 = new TodoService(storage1);
 
-    const t1 = service1.add('Удалить меня');
-    service1.add('Оставить');
+    const t1 = service1.add('Удалить меня', TEST_DATE);
+    service1.add('Оставить', TEST_DATE);
     service1.remove(t1.id);
 
     const loaded = new TodoService(new StorageService()).getAll();
@@ -62,17 +64,17 @@ describe('Персистентность: TodoService + StorageService', () => {
     const storage1 = new StorageService();
     const service1 = new TodoService(storage1);
 
-    const t1 = service1.add('Единственная задача');
+    const t1 = service1.add('Единственная задача', TEST_DATE);
     service1.remove(t1.id);
 
     const loaded = new TodoService(new StorageService()).getAll();
     expect(loaded).toHaveLength(0);
   });
 
-  it('все поля задачи (id, text, completed, createdAt) сохраняются без изменений', () => {
+  it('все поля задачи (id, text, completed, createdAt, dueDate) сохраняются без изменений', () => {
     const storage1 = new StorageService();
     const service1 = new TodoService(storage1);
-    const original = service1.add('Проверка полей');
+    const original = service1.add('Проверка полей', TEST_DATE);
 
     const loaded = new TodoService(new StorageService()).getAll();
     const restored = loaded[0];
@@ -81,5 +83,6 @@ describe('Персистентность: TodoService + StorageService', () => {
     expect(restored.text).toBe(original.text);
     expect(restored.completed).toBe(original.completed);
     expect(restored.createdAt).toBe(original.createdAt);
+    expect(restored.dueDate).toBe(original.dueDate);
   });
 });

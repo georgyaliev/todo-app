@@ -21,7 +21,7 @@ export class TodoService {
     return this.todos.filter((t) => !t.completed).length;
   }
 
-  add(text: string): Todo {
+  add(text: string, dueDate: string): Todo {
     const trimmed = text.trim();
     if (trimmed.length === 0) {
       throw new ValidationError('Введите текст задачи');
@@ -29,8 +29,11 @@ export class TodoService {
     if (trimmed.length > 255) {
       throw new ValidationError('Текст не должен превышать 255 символов');
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+      throw new ValidationError('Некорректная дата');
+    }
 
-    const todo = createTodo(trimmed);
+    const todo = createTodo(trimmed, dueDate);
     const newTodos = [...this.todos, todo];
     if (this.storage.save(newTodos)) {
       this.todos = newTodos;
@@ -65,6 +68,35 @@ export class TodoService {
       this.todos = newTodos;
       this.notify();
     }
+  }
+
+  getByDate(date: string): Todo[] {
+    return this.todos.filter((t) => t.dueDate === date);
+  }
+
+  getByDateRange(dates: string[]): Map<string, Todo[]> {
+    const set = new Set(dates);
+    const map = new Map<string, Todo[]>();
+    for (const date of dates) map.set(date, []);
+    for (const todo of this.todos) {
+      if (set.has(todo.dueDate)) {
+        map.get(todo.dueDate)?.push(todo);
+      }
+    }
+    return map;
+  }
+
+  getMonthStats(year: number, month: number): { completed: number; active: number } {
+    const prefix = `${String(year).padStart(4, '0')}-${String(month + 1).padStart(2, '0')}`;
+    let completed = 0;
+    let active = 0;
+    for (const todo of this.todos) {
+      if (todo.dueDate.startsWith(prefix)) {
+        if (todo.completed) completed++;
+        else active++;
+      }
+    }
+    return { completed, active };
   }
 
   onChange(listener: () => void): () => void {
