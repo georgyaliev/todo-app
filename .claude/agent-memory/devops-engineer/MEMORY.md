@@ -1,0 +1,2 @@
+- [Hosting: Netlify drag-and-drop](project_hosting.md) — Netlify выбран как платформа деплоя, git не требуется, netlify.toml в корне
+- [Build config: tsconfig.build.json](project_build_config.md) — тесты исключены из prod-сборки, скрипт build использует tsc -p tsconfig.build.json

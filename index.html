@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Список задач</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <main class="app">
+    <h1>Мои задачи</h1>
+    <form id="todo-form" class="todo-form" novalidate>
+      <input id="todo-input" type="text" placeholder="Новая задача..." maxlength="255" autocomplete="off" />
+      <button type="submit">Добавить</button>
+      <span id="todo-error" class="error" aria-live="polite"></span>
+    </form>
+    <p id="todo-counter" class="counter"></p>
+    <ul id="todo-list" class="todo-list"></ul>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

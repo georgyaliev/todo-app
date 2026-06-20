@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-vite@latest . --template vanilla-ts)",
+      "Bash(npx create-vite@latest /tmp/todo-app-temp --template vanilla-ts)",
+      "Bash(cp -r /tmp/todo-app-temp/. .)",
+      "Bash(cp -r /Users/georgijaliev/Projects/todo-app/tmp/todo-app-temp/. /Users/georgijaliev/Projects/todo-app/)",
+      "Bash(rm -rf /Users/georgijaliev/Projects/todo-app/tmp)",
+      "Bash(npm install *)",
+      "Bash(rm /Users/georgijaliev/Projects/todo-app/src/counter.ts /Users/georgijaliev/Projects/todo-app/src/style.css)",
+      "Bash(rm -rf /Users/georgijaliev/Projects/todo-app/src/assets)",
+      "Bash(mkdir -p /Users/georgijaliev/Projects/todo-app/src/models /Users/georgijaliev/Projects/todo-app/src/services /Users/georgijaliev/Projects/todo-app/src/components /Users/georgijaliev/Projects/todo-app/src/styles)",
+      "Bash(npm run *)",
+      "Bash(node -e \"require\\('jsdom'\\)\")",
+      "Bash(npx vitest *)",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); deps = p.get\\('dependencies',{}\\); print\\({k:v for k,v in deps.items\\(\\) if 'jsdom' in k or 'env' in k.lower\\(\\)}\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)"
+    ]
+  }
+}

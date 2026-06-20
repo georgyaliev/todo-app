@@ -1,0 +1,1 @@
+- [Todo App — контекст продукта](project_todo_app.md) — MVP веб-список задач: 3 операции, localStorage vs бэкенд не решено, стек не задан
