@@ -49,10 +49,7 @@ export function createCalendarCell(
 
   // Todos list container
   const todosContainer = document.createElement('ul');
-  todosContainer.className = 'cal-cell__todos';
-  todosContainer.style.listStyle = 'none';
-  todosContainer.style.padding = '0';
-  todosContainer.style.margin = '0';
+  todosContainer.className = 'cal-cell__todos cal-cell__todos-list';
 
   const visibleTodos = todos.slice(0, VISIBLE_LIMIT);
   const hiddenCount = todos.length - VISIBLE_LIMIT;
@@ -107,6 +104,16 @@ export function createCalendarCell(
   return li;
 }
 
+function getTooltip(): HTMLDivElement {
+  let el = document.querySelector<HTMLDivElement>('.cal-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'cal-tooltip';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
 function createTodoItem(todo: Todo, callbacks: CellCallbacks): HTMLLIElement {
   const li = document.createElement('li');
   li.className = 'cal-todo-item' + (todo.completed ? ' cal-todo-item--done' : '');
@@ -120,9 +127,22 @@ function createTodoItem(todo: Todo, callbacks: CellCallbacks): HTMLLIElement {
     callbacks.onToggle(todo.id);
   });
 
-  const text = document.createElement('span');
-  text.className = 'cal-todo-item__text';
-  text.textContent = todo.text;
+  const textEl = document.createElement('span');
+  textEl.className = 'cal-todo-item__text';
+  textEl.textContent = todo.text;
+
+  textEl.addEventListener('mouseenter', () => {
+    if (textEl.scrollWidth <= textEl.clientWidth) return;
+    const tooltip = getTooltip();
+    tooltip.textContent = todo.text;
+    const rect = textEl.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.bottom + 6}px`;
+    tooltip.classList.add('cal-tooltip--visible');
+  });
+  textEl.addEventListener('mouseleave', () => {
+    getTooltip().classList.remove('cal-tooltip--visible');
+  });
 
   const delBtn = document.createElement('button');
   delBtn.className = 'cal-todo-item__del';
@@ -133,6 +153,6 @@ function createTodoItem(todo: Todo, callbacks: CellCallbacks): HTMLLIElement {
     callbacks.onRemove(todo.id);
   });
 
-  li.append(check, text, delBtn);
+  li.append(check, textEl, delBtn);
   return li;
 }

@@ -5,8 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Список задач</title>
   <link rel="stylesheet" href="/src/styles/main.css" />
+  <style>
+    #star-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
+  <canvas id="star-canvas" aria-hidden="true"></canvas>
   <main class="app">
     <div id="calendar-view"></div>
   </main>
